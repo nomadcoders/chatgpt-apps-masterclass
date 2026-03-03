@@ -95,10 +95,17 @@ export default {
 					ui: {
 						resourceUri: 'ui://stocks-ui',
 					},
+					'openai/toolInvocation/invoking': 'Getting stocks...',
+					'openai/toolInvocation/invoked': 'Search complete',
+				},
+				annotations: {
+					openWorldHint: true,
+					readOnlyHint: true,
 				},
 				// { symbol: "AAPL" }
 			},
 			async ({ symbol }) => {
+				await new Promise((r) => setTimeout(r, 10000));
 				return {
 					content: [
 						{
