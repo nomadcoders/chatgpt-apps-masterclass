@@ -10,11 +10,12 @@ export default {
 		});
 
 		registerAppResource(server, 'Dev Widget', 'ui://dev-widget', { description: 'Dev widget' }, async () => {
+			const html = await env.ASSETS.fetch(new URL('http://hello/index.html'));
 			return {
 				contents: [
 					{
 						uri: 'ui://dev-widget',
-						text: 'coming soon',
+						text: await html.text(),
 						mimeType: RESOURCE_MIME_TYPE,
 					},
 				],
