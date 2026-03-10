@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ladle/react": "^5.1.1",
+    "@modelcontextprotocol/ext-apps": "^1.2.0",
     "@openai/apps-sdk-ui": "^0.2.1",
     "@tailwindcss/vite": "^4.2.1",
     "react": "^19.2.0",
