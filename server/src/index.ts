@@ -31,6 +31,19 @@ export default {
 						uri: WIDGET_URI,
 						text: await html.text(),
 						mimeType: RESOURCE_MIME_TYPE,
+						_meta: {
+							ui: {
+								csp: {
+									connectDomains: ['https://*.workers.dev'],
+									resourceDomains: [
+										'https://*.workers.dev',
+										'https://fonts.googleapis.com',
+										'https://fonts.gstatic.com',
+										'https://image.tmdb.org',
+									],
+								},
+							},
+						},
 					},
 				],
 			};
@@ -56,7 +69,7 @@ export default {
 			async () => {
 				const movies = await fetchUpcomingMovies(API_KEY);
 				return {
-					content: [{ text: 'stuff', type: 'text' }],
+					content: [{ text: JSON.stringify(movies), type: 'text' }],
 					structuredContent: { movies },
 				};
 			},

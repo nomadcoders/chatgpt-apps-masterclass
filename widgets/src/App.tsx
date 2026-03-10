@@ -1,10 +1,13 @@
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import { LoadingIndicator } from "@openai/apps-sdk-ui/components/Indicator";
 import { useState } from "react";
+import type { MovieDetail, MoviesResponse } from "./types";
+import { MoviesList } from "./movie-list";
+import { MovieDetails } from "./movie-details";
 
 interface ToolOutput {
-  movies?: Record<string, string>;
-  movie?: Record<string, string>;
+  movies?: MoviesResponse;
+  movie?: MovieDetail;
 }
 
 function App() {
