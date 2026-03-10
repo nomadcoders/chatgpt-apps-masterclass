@@ -16,8 +16,10 @@ const WIDGET_URI = 'ui://movies-widget';
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
+		const API_KEY = env.API_KEY;
+
 		const server = new McpServer({
-			name: 'Dev Env',
+			name: 'Movies',
 			version: '1.0',
 		});
 
@@ -52,7 +54,7 @@ export default {
 				},
 			},
 			async () => {
-				const movies = await fetchUpcomingMovies('x');
+				const movies = await fetchUpcomingMovies(API_KEY);
 				return {
 					content: [{ text: 'stuff', type: 'text' }],
 					structuredContent: { movies },
@@ -78,7 +80,7 @@ export default {
 				},
 			},
 			async () => {
-				const movies = await fetchNowPlayingMovies('x');
+				const movies = await fetchNowPlayingMovies(API_KEY);
 				return {
 					content: [{ text: 'stuff', type: 'text' }],
 					structuredContent: { movies },
@@ -111,7 +113,7 @@ export default {
 				},
 			},
 			async ({ movieId }) => {
-				const movies = await fetchSimilarMovies(movieId, 'x');
+				const movies = await fetchSimilarMovies(movieId, API_KEY);
 				return {
 					content: [{ text: 'stuff', type: 'text' }],
 					structuredContent: { movies },
@@ -141,10 +143,10 @@ export default {
 				},
 			},
 			async ({ movieId }) => {
-				const movies = await fetchMovieReviews(movieId, 'x');
+				const reviews = await fetchMovieReviews(movieId, API_KEY);
 				return {
 					content: [{ text: 'stuff', type: 'text' }],
-					structuredContent: { movies },
+					structuredContent: { reviews },
 				};
 			},
 		);
@@ -164,7 +166,7 @@ export default {
 				},
 			},
 			async () => {
-				const genres = await fetchMovieGenres('x');
+				const genres = await fetchMovieGenres(API_KEY);
 				return {
 					content: [{ text: 'stuff', type: 'text' }],
 					structuredContent: { genres },
@@ -197,7 +199,7 @@ export default {
 				},
 			},
 			async ({ genreId }) => {
-				const movies = await fetchMovieByGenre(genreId, 'x');
+				const movies = await fetchMovieByGenre(genreId, API_KEY);
 				return {
 					content: [{ text: 'stuff', type: 'text' }],
 					structuredContent: { movies },
@@ -225,7 +227,7 @@ export default {
 				},
 			},
 			async ({ movieId }) => {
-				const movie = await fetchMovieDetails(movieId, 'x');
+				const movie = await fetchMovieDetails(movieId, API_KEY);
 				return {
 					content: [{ text: 'stuff', type: 'text' }],
 					structuredContent: { movie },

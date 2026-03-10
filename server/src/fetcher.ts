@@ -21,18 +21,23 @@ async function fetchFromTMDB(endpoint: string, apiKey: string, params: Record<st
 export async function fetchUpcomingMovies(apiKey: string) {
 	return fetchFromTMDB(`/movie/upcoming`, apiKey);
 }
+
 export async function fetchNowPlayingMovies(apiKey: string) {
 	return fetchFromTMDB(`/movie/now_playing`, apiKey);
 }
+
 export async function fetchSimilarMovies(movieId: number, apiKey: string) {
 	return fetchFromTMDB(`/movie/${movieId}/similar`, apiKey);
 }
+
 export async function fetchMovieReviews(movieId: number, apiKey: string) {
 	return fetchFromTMDB(`/movie/${movieId}/reviews`, apiKey);
 }
+
 export async function fetchMovieGenres(apiKey: string) {
 	return fetchFromTMDB(`/genre/movie/list`, apiKey);
 }
+
 export async function fetchMovieByGenre(genreId: number, apiKey: string) {
 	return fetchFromTMDB(`/discover/movie`, apiKey, {
 		with_genres: String(genreId),
