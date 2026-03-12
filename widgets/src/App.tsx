@@ -1,4 +1,4 @@
-import { useApp } from "@modelcontextprotocol/ext-apps/react";
+import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import { LoadingIndicator } from "@openai/apps-sdk-ui/components/Indicator";
 import { useState } from "react";
 import type { MovieDetail, MoviesResponse } from "./types";
@@ -13,7 +13,7 @@ interface ToolOutput {
 function App() {
   const [toolOutput, setToolOutput] = useState<ToolOutput | null>(null);
 
-  useApp({
+  const { app } = useApp({
     appInfo: { name: "Movies Client", version: "1.0" },
     capabilities: {},
     onAppCreated: (app) => {
@@ -24,6 +24,10 @@ function App() {
       };
     },
   });
+
+  console.log(app?.getHostContext());
+
+  useHostStyles(app, app?.getHostContext());
 
   if (toolOutput?.movies) {
     return <MoviesList movies={toolOutput.movies} />;
