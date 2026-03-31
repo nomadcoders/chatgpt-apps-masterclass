@@ -2,35 +2,27 @@ import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@model
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpHandler } from 'agents/mcp';
 import z from 'zod';
-import crypto from 'node:crypto';
 
-const WIDGET_URI = 'ui://flashcards-widget';
+const WIDGET_URI = 'ui://workout-widget';
 
-const cardSchema = z.object({
-	id: z.string().readonly(),
-	front: z.string().describe('The question or prompt'),
-	back: z.string().describe('The answer'),
-	hint: z.string().describe('A hint for the card'),
-	status: z.enum(['new', 'learning', 'mastered']).readonly().default('new'),
+const exerciseSchema = z.object({
+	name: z.string().describe("Exercise name (e.g., 'Push-ups')"),
+	reps: z.number().min(1).describe('Number of reps to complete each round'),
+	instructions: z.string().describe('Brief form instructions'),
+	searchKeyword: z
+		.string()
+		.optional()
+		.describe("YouTube search keyword for form tutorial (e.g., 'push ups proper form')"),
 });
-
-const deckSchema = z.object({
-	title: z.string().describe("The title of the deck. e.g 'React Fundamentals'"),
-	description: z.string().describe('Brief description of what this deck covers.'),
-	cards: z.array(cardSchema).min(10).max(20).describe('Array of flashcards (aim for 20.'),
-});
-
-type Deck = z.infer<typeof deckSchema>;
-type Card = z.infer<typeof cardSchema>;
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const server = new McpServer({
-			name: 'Flashcard Server',
+			name: 'EMOM Workout App',
 			version: '1.0',
 		});
 
-		registerAppResource(server, 'Flashcard Widget', WIDGET_URI, { description: 'Flashcard Widget' }, async () => {
+		registerAppResource(server, 'Workout Widget', WIDGET_URI, { description: 'Workout Widget' }, async () => {
 			const html = await env.ASSETS.fetch(new URL('http://hello/index.html'));
 			return {
 				contents: [
@@ -46,7 +38,6 @@ export default {
 										'https://*.workers.dev',
 										'https://fonts.googleapis.com',
 										'https://fonts.gstatic.com',
-										'https://image.tmdb.org',
 									],
 								},
 							},
@@ -56,306 +47,134 @@ export default {
 			};
 		});
 
-		// create deck
+		// Tool 1: Create a new workout
 		registerAppTool(
 			server,
-			'create-deck',
+			'create-workout',
 			{
-				title: 'Create Deck',
+				title: 'Create EMOM Workout',
 				description:
-					'Use this to create a deck of flashcards for studying. Generate 20 cards, with front (question) and back (answer) with a hint as well. Ask the user for their username before using this tool.',
+					'Create a new EMOM workout. Generate a workout with 4-8 exercises. Each exercise needs a name, reps, instructions, and optionally a YouTube search keyword for form tutorials.',
 				inputSchema: {
-					username: z.string().describe("The user's username. Ask for this before using the tool"),
-					deck: deckSchema,
+					userId: z.string().describe("The user's username. Ask the user for this before calling."),
+					title: z.string().describe("The workout title (e.g., 'Upper Body Blast')"),
+					description: z.string().describe('Brief description of the workout'),
+					durationMinutes: z.number().min(1).max(60).describe('Total workout duration in minutes'),
+					intervalSeconds: z.number().min(30).max(120).default(60).describe('Seconds per interval (default: 60)'),
+					exercises: z.array(exerciseSchema).min(1).max(10).describe('Array of exercises (4-8 recommended)'),
 				},
-				annotations: {
-					readOnlyHint: false,
-				},
+				annotations: { readOnlyHint: false },
 				_meta: {
-					ui: {
-						resourceUri: WIDGET_URI,
-					},
+					ui: { resourceUri: WIDGET_URI },
 				},
 			},
-			async ({ deck: { title, description, cards }, username }) => {
-				const cardsWithIds = cards.map((card, index) => ({
-					...card,
-					id: `card-${Date.now()}-${index}`,
-					status: 'new',
-				}));
-				const deck = {
-					id: `deck-${Date.now()}`,
-					title,
-					description,
-					cards: cardsWithIds,
-					createdAt: new Date().toISOString(),
-				};
-
-				const decksKey = `user:${username}:decks`;
-
-				await env.FLASHCARDS_KV.put(`user:${username}:deck:${deck.id}`, JSON.stringify(deck));
-
-				const existingIds = await env.FLASHCARDS_KV.get<string[]>(decksKey, 'json');
-
-				const deckIds = existingIds || [];
-
-				deckIds.push(deck.id);
-
-				await env.FLASHCARDS_KV.put(decksKey, JSON.stringify(deckIds));
+			async ({ userId, title, description, durationMinutes, intervalSeconds, exercises }) => {
+				// TODO: Save workout to D1 database
 
 				return {
-					content: [
-						{
-							type: 'text',
-							text: `Created a ${title} deck with ${cards.length} flashcards and ${JSON.stringify(deck)}`,
-						},
-					],
-					structuredContent: { deck, username },
+					content: [{ type: 'text', text: `Created "${title}"` }],
+					structuredContent: {},
 				};
 			},
 		);
 
-		// list decks
+		// Tool 2: Get all user's workouts
 		registerAppTool(
 			server,
-			'list-decks',
+			'get-workouts',
 			{
-				title: 'List Decks',
+				title: 'Get Workouts',
 				description:
-					'Use this to show the user a list of their decks. Ask the user for their username before using this tool if you dont know it.',
+					"Use this to show all saved EMOM workouts. Shows workout titles, durations, and exercise counts. Ask the user which workout they want to view, then use get-workout with that ID.",
 				inputSchema: {
-					username: z.string().describe("The user's username. Ask for this before using the tool"),
+					userId: z.string().describe("The user's username. Ask the user for this before calling."),
 				},
-				annotations: {
-					readOnlyHint: true,
-				},
+				annotations: { readOnlyHint: true },
 				_meta: {
-					ui: {
-						resourceUri: WIDGET_URI,
-					},
+					ui: { resourceUri: WIDGET_URI },
 				},
 			},
-			async ({ username }) => {
-				const decksKey = `user:${username}:decks`;
-
-				const deckIds = await env.FLASHCARDS_KV.get<string[]>(decksKey, 'json');
-
-				if (!deckIds || deckIds.length === 0) {
-					return {
-						content: [{ text: 'You have no decks', type: 'text' }],
-						structuredContent: { decks: [] },
-					};
-				}
-
-				const decks = [];
-
-				for (const deckId of deckIds) {
-					const deck = await env.FLASHCARDS_KV.get<Deck>(`user:${username}:deck:${deckId}`, 'json');
-					if (deck) {
-						const masteredCount = deck.cards.filter((card) => card.status === 'mastered').length;
-						decks.push({ masteredCount, ...deck });
-					}
-				}
+			async ({ userId }) => {
+				// TODO: Fetch workouts from D1 database
 
 				return {
-					content: [
-						{
-							type: 'text',
-							text: `Found a total of  ${decks.length} ${JSON.stringify(decks)}`,
-						},
-					],
-					structuredContent: { decks, username },
+					content: [{ type: 'text', text: 'No workouts found.' }],
+					structuredContent: { workouts: [] },
 				};
 			},
 		);
 
-		// open deck
+		// Tool 3: Get a specific workout
 		registerAppTool(
 			server,
-			'open-deck',
+			'get-workout',
 			{
-				title: 'Open Deck',
+				title: 'View Workout',
 				description:
-					'Use this to open a deck for a user to study. Ask the user for their username before using this tool if you dont know it. Make sure you also have the deck id.',
+					'Use this to view a specific EMOM workout with all its exercises. The widget shows a Start Workout button that opens a fullscreen timer session.',
 				inputSchema: {
-					username: z.string().describe("The user's username. Ask for this before using the tool"),
-					deckId: z.string().describe('The ID of the deck. You can get it using the `list-decks` tool '),
+					workoutId: z.string().describe('The workout ID to view'),
 				},
-				annotations: {
-					readOnlyHint: true,
-				},
+				annotations: { readOnlyHint: true },
 				_meta: {
-					ui: {
-						resourceUri: WIDGET_URI,
-					},
+					ui: { resourceUri: WIDGET_URI },
 				},
 			},
-			async ({ username, deckId }) => {
-				const deckKey = `user:${username}:deck:${deckId}`;
-
-				const deck = await env.FLASHCARDS_KV.get<Deck>(deckKey, 'json');
-
-				if (!deck) {
-					return {
-						content: [{ text: 'Deck not found', type: 'text' }],
-						structuredContent: { decks: [] },
-					};
-				}
+			async ({ workoutId }) => {
+				// TODO: Fetch workout by ID from D1 database
 
 				return {
-					content: [
-						{
-							type: 'text',
-							text: `Studying ${deck.title} with ${deck.description} opened. ${JSON.stringify(deck.cards)}`,
-						},
-					],
-					structuredContent: { deck, username, deckId },
-					_meta: {
-						viewUUID: crypto.randomUUID(),
-					},
+					content: [{ type: 'text', text: 'Workout not found' }],
+					isError: true,
 				};
 			},
 		);
 
-		// mark card (private)
+		// Tool 4: Delete a workout
 		registerAppTool(
 			server,
-			'mark-card',
+			'delete-workout',
 			{
-				title: 'Mark Card',
-				description: 'This is to change the status of a card.',
+				title: 'Delete Workout',
+				description: 'Permanently deletes a workout. This cannot be undone.',
 				inputSchema: {
-					username: z.string(),
-					deckId: z.string(),
-					status: z.enum(['learning', 'mastered']),
-					cardId: z.string(),
+					workoutId: z.string().describe('The workout ID to delete'),
 				},
-				annotations: {
-					readOnlyHint: false,
-				},
-				_meta: {
-					ui: {
-						visibility: ['app'],
-					},
-				},
-			},
-			async ({ username, deckId, cardId, status }) => {
-				const deckKey = `user:${username}:deck:${deckId}`;
-
-				const deck = await env.FLASHCARDS_KV.get<Deck>(deckKey, 'json');
-
-				if (!deck) {
-					return {
-						content: [{ text: 'Error not found', type: 'text' }],
-						isError: true,
-					};
-				}
-
-				const card = deck.cards.find((card) => card.id == cardId);
-
-				if (card) {
-					card.status = status;
-				}
-
-				await env.FLASHCARDS_KV.put(deckKey, JSON.stringify(deck));
-
-				return {
-					content: [
-						{
-							type: 'text',
-							text: `Card ${cardId} has been updated to ${status} status.`,
-						},
-					],
-					structuredContent: { deck },
-				};
-			},
-		);
-
-		// reset deck (private)
-		registerAppTool(
-			server,
-			'reset-deck',
-			{
-				title: 'Reset Deck',
-				description: 'This is to reset the progress of the deck.',
-				inputSchema: {
-					username: z.string(),
-					deckId: z.string(),
-				},
-				annotations: {
-					destructiveHint: true,
-				},
-				_meta: {
-					ui: {
-						visibility: ['app'],
-					},
-				},
-			},
-			async ({ username, deckId }) => {
-				const deckKey = `user:${username}:deck:${deckId}`;
-
-				const deck = await env.FLASHCARDS_KV.get<Deck>(deckKey, 'json');
-
-				if (!deck) {
-					return {
-						content: [{ text: 'Error not found', type: 'text' }],
-						isError: true,
-					};
-				}
-				for (const card of deck.cards) {
-					card.status = 'new';
-				}
-
-				await env.FLASHCARDS_KV.put(deckKey, JSON.stringify(deck));
-
-				return {
-					content: [
-						{
-							type: 'text',
-							text: `Deck progress has been reset.`,
-						},
-					],
-					structuredContent: { deck },
-				};
-			},
-		);
-
-		// delete deck
-		registerAppTool(
-			server,
-			'delete-deck',
-			{
-				title: 'Delete Deck',
-				description:
-					'Use this to delete a deck. Ask the user for their username before using this tool if you dont know it. Make sure you also have the deck id.',
-				inputSchema: {
-					username: z.string().describe("The user's username. Ask for this before using the tool"),
-					deckId: z.string().describe('The ID of the deck to delete. You can get it using the `list-decks` tool '),
-				},
-				annotations: {
-					destructiveHint: true,
-				},
+				annotations: { destructiveHint: true },
 				_meta: {},
 			},
-			async ({ username, deckId }) => {
-				const deckKey = `user:${username}:deck:${deckId}`;
-
-				const deck = await env.FLASHCARDS_KV.get<Deck>(deckKey, 'json');
-
-				if (!deck) {
-					return {
-						content: [{ text: 'Deck not found', type: 'text' }],
-					};
-				}
-				await env.FLASHCARDS_KV.delete(deckKey);
+			async ({ workoutId }) => {
+				// TODO: Delete workout from D1 database
 
 				return {
-					content: [
-						{
-							type: 'text',
-							text: `Deck deleted`,
-						},
-					],
+					content: [{ type: 'text', text: `Deleted workout ${workoutId}` }],
+				};
+			},
+		);
+
+		// Tool 5: Complete a workout (called from widget after timer finishes)
+		registerAppTool(
+			server,
+			'complete-workout',
+			{
+				title: 'Complete Workout',
+				description:
+					'Called when a user finishes a workout. Uses Workers AI to estimate calories burned based on the exercises performed.',
+				inputSchema: {
+					workoutId: z.string().describe('The workout ID that was completed'),
+					roundsCompleted: z.number().min(0).describe('Number of rounds the user actually completed'),
+				},
+				annotations: { readOnlyHint: false },
+				_meta: {
+					ui: { visibility: ['app'] },
+				},
+			},
+			async ({ workoutId, roundsCompleted }) => {
+				// TODO: Fetch workout from D1, estimate calories via Workers AI
+
+				return {
+					content: [{ type: 'text', text: 'Workout completed!' }],
+					structuredContent: { caloriesBurned: 0 },
 				};
 			},
 		);
