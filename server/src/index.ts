@@ -1,7 +1,9 @@
 import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpHandler } from 'agents/mcp';
+import { drizzle } from 'drizzle-orm/d1';
 import z from 'zod';
+import { workouts } from './schema';
 
 const WIDGET_URI = 'ui://workout-widget';
 
@@ -9,14 +11,13 @@ const exerciseSchema = z.object({
 	name: z.string().describe("Exercise name (e.g., 'Push-ups')"),
 	reps: z.number().min(1).describe('Number of reps to complete each round'),
 	instructions: z.string().describe('Brief form instructions'),
-	searchKeyword: z
-		.string()
-		.optional()
-		.describe("YouTube search keyword for form tutorial (e.g., 'push ups proper form')"),
+	searchKeyword: z.string().optional().describe("YouTube search keyword for form tutorial (e.g., 'push ups proper form')"),
 });
 
+export type Exercise = z.infer<typeof exerciseSchema>;
+
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
+	async fetch(request, env, ctx) {
 		const server = new McpServer({
 			name: 'EMOM Workout App',
 			version: '1.0',
@@ -34,11 +35,7 @@ export default {
 							ui: {
 								csp: {
 									connectDomains: ['https://*.workers.dev'],
-									resourceDomains: [
-										'https://*.workers.dev',
-										'https://fonts.googleapis.com',
-										'https://fonts.gstatic.com',
-									],
+									resourceDomains: ['https://*.workers.dev', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
 								},
 							},
 						},
@@ -54,7 +51,7 @@ export default {
 			{
 				title: 'Create EMOM Workout',
 				description:
-					'Create a new EMOM workout. Generate a workout with 4-8 exercises. Each exercise needs a name, reps, instructions, and optionally a YouTube search keyword for form tutorials.',
+					'Create a new EMOM workout. Generate a workout with 5 - 10 exercises. Each exercise needs a name, reps, instructions, and optionally a YouTube search keyword for form tutorials.',
 				inputSchema: {
 					userId: z.string().describe("The user's username. Ask the user for this before calling."),
 					title: z.string().describe("The workout title (e.g., 'Upper Body Blast')"),
@@ -69,11 +66,26 @@ export default {
 				},
 			},
 			async ({ userId, title, description, durationMinutes, intervalSeconds, exercises }) => {
-				// TODO: Save workout to D1 database
+				const db = drizzle(env.DB);
+
+				const [result] = await db
+					.insert(workouts)
+					.values({
+						userId,
+						title,
+						description,
+						durationMinutes,
+						intervalSeconds,
+						exercises,
+						exerciseCount: exercises.length,
+					})
+					.returning();
 
 				return {
-					content: [{ type: 'text', text: `Created "${title}"` }],
-					structuredContent: {},
+					content: [{ type: 'text', text: `Created "${title}"\nWorkout ID: ${result.id}\nDescription:${result.description}` }],
+					structuredContent: {
+						workout: result,
+					},
 				};
 			},
 		);
@@ -85,7 +97,7 @@ export default {
 			{
 				title: 'Get Workouts',
 				description:
-					"Use this to show all saved EMOM workouts. Shows workout titles, durations, and exercise counts. Ask the user which workout they want to view, then use get-workout with that ID.",
+					'Use this to show all saved EMOM workouts. Shows workout titles, durations, and exercise counts. Ask the user which workout they want to view, then use get-workout with that ID.',
 				inputSchema: {
 					userId: z.string().describe("The user's username. Ask the user for this before calling."),
 				},
@@ -95,8 +107,6 @@ export default {
 				},
 			},
 			async ({ userId }) => {
-				// TODO: Fetch workouts from D1 database
-
 				return {
 					content: [{ type: 'text', text: 'No workouts found.' }],
 					structuredContent: { workouts: [] },
@@ -158,8 +168,7 @@ export default {
 			'complete-workout',
 			{
 				title: 'Complete Workout',
-				description:
-					'Called when a user finishes a workout. Uses Workers AI to estimate calories burned based on the exercises performed.',
+				description: 'Called when a user finishes a workout. Uses Workers AI to estimate calories burned based on the exercises performed.',
 				inputSchema: {
 					workoutId: z.string().describe('The workout ID that was completed'),
 					roundsCompleted: z.number().min(0).describe('Number of rounds the user actually completed'),
