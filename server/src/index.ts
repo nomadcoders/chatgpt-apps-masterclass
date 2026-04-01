@@ -232,11 +232,31 @@ export default {
 						isError: true,
 					};
 				}
-				// TODO: Fetch workout from D1, estimate calories via Workers AI
+
+				const summary = result.exercises.map((e) => `${e.name}: ${e.reps}reps`).join(', ');
+
+				const response = (await env.AI.run('@cf/zai-org/glm-4.7-flash' as keyof AiModels, {
+					messages: [
+						{
+							role: 'system',
+							content:
+								'You are a fitness calorie calculator. Reply only with a single integer representing the calories burned from a workout. No text, no units, nothing else than a single integer.',
+						},
+						{
+							role: 'user',
+							content: `I did an EMOM workout. Here is exactly how much I exercised:\n\n
+								- Rounds completed: ${roundsCompleted}\n
+								- Exercises per round: ${summary}
+							`,
+						},
+					],
+				})) as any;
+
+				const calories = response.choices[0].message.content;
 
 				return {
-					content: [{ type: 'text', text: 'Workout completed!' }],
-					structuredContent: { caloriesBurned: 0 },
+					content: [{ type: 'text', text: `Workout completed! The user burnt ${calories}` }],
+					structuredContent: { calories },
 				};
 			},
 		);
