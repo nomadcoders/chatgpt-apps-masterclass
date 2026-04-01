@@ -4,6 +4,7 @@ import { createMcpHandler } from 'agents/mcp';
 import { drizzle } from 'drizzle-orm/d1';
 import z from 'zod';
 import { workouts } from './schema';
+import { eq } from 'drizzle-orm';
 
 const WIDGET_URI = 'ui://workout-widget';
 
@@ -107,9 +108,35 @@ export default {
 				},
 			},
 			async ({ userId }) => {
+				const db = drizzle(env.DB);
+
+				const result = await db
+					.select({
+						id: workouts.id,
+						title: workouts.title,
+						description: workouts.description,
+						durationMinutes: workouts.durationMinutes,
+						exerciseCount: workouts.exerciseCount,
+					})
+					.from(workouts)
+					.where(eq(workouts.userId, userId))
+					.orderBy(workouts.createdAt);
+
+				if (result.length === 0) {
+					return {
+						content: [{ type: 'text', text: 'No workouts found.' }],
+						structuredContent: { workouts: [] },
+					};
+				}
+
+				const formattedWorkouts = result.map(
+					(workout) =>
+						`id${workout.id}\ntitle:${workout.title}\ndescription:${workout.description}\ndurationMinutes:${workout.durationMinutes}\nexerciseCount:${workout.exerciseCount}\n\n=====\n\n`,
+				);
+
 				return {
-					content: [{ type: 'text', text: 'No workouts found.' }],
-					structuredContent: { workouts: [] },
+					content: [{ type: 'text', text: `Found ${result.length} workouts:\n\n${formattedWorkouts}` }],
+					structuredContent: { workouts: result },
 				};
 			},
 		);
@@ -131,11 +158,25 @@ export default {
 				},
 			},
 			async ({ workoutId }) => {
-				// TODO: Fetch workout by ID from D1 database
+				const db = drizzle(env.DB);
+
+				const [result] = await db.select().from(workouts).where(eq(workouts.id, workoutId)).limit(1);
+
+				if (result === undefined) {
+					return {
+						content: [{ type: 'text', text: 'Workout not found' }],
+						isError: true,
+					};
+				}
 
 				return {
-					content: [{ type: 'text', text: 'Workout not found' }],
-					isError: true,
+					content: [
+						{
+							text: `Viewing "${result.title}" - ${result.durationMinutes} min EMOM with ${result.exercises.length} exercises`,
+							type: 'text',
+						},
+					],
+					structuredContent: { workout: result },
 				};
 			},
 		);
@@ -154,7 +195,9 @@ export default {
 				_meta: {},
 			},
 			async ({ workoutId }) => {
-				// TODO: Delete workout from D1 database
+				const db = drizzle(env.DB);
+
+				await db.delete(workouts).where(eq(workouts.id, workoutId));
 
 				return {
 					content: [{ type: 'text', text: `Deleted workout ${workoutId}` }],
@@ -179,6 +222,16 @@ export default {
 				},
 			},
 			async ({ workoutId, roundsCompleted }) => {
+				const db = drizzle(env.DB);
+
+				const [result] = await db.select().from(workouts).where(eq(workouts.id, workoutId)).limit(1);
+
+				if (result === undefined) {
+					return {
+						content: [{ type: 'text', text: 'Workout not found' }],
+						isError: true,
+					};
+				}
 				// TODO: Fetch workout from D1, estimate calories via Workers AI
 
 				return {
