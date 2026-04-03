@@ -1,18 +1,24 @@
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import { LoadingIndicator } from "@openai/apps-sdk-ui/components/Indicator";
 import { useState } from "react";
-import { type ToolOutput } from "./types";
+import { WorkoutList } from "./components/workout/workout-list";
+import { WorkoutDetail } from "./components/workout/workout-detail";
+import { WorkoutSession } from "./components/workout/workout-session";
+import type { ToolOutput } from "./types";
 
 function App() {
   const [toolOutput, setToolOutput] = useState<ToolOutput | null>(null);
+  const [showSession, setShowSession] = useState(false);
 
-  const { app, error } = useApp({
-    appInfo: { name: "Workouts Client", version: "1.0" },
+  const { app } = useApp({
+    appInfo: { name: "EMOM Workout App", version: "1.0" },
     capabilities: {},
     onAppCreated: (app) => {
-      app.ontoolresult = (result) => {
-        if (result.structuredContent) {
-          setToolOutput(result.structuredContent as unknown as ToolOutput);
+      // TODO: safeAreaInsets and displayMode
+
+      app.ontoolresult = (params) => {
+        if (params.structuredContent) {
+          setToolOutput(params.structuredContent as ToolOutput);
         }
       };
     },
@@ -20,16 +26,29 @@ function App() {
 
   useHostStyles(app, app?.getHostContext());
 
-  if (error) {
+  if (toolOutput && "workout" in toolOutput) {
+    if (showSession) {
+      return (
+        <WorkoutSession
+          workout={toolOutput.workout}
+          onClose={() => setShowSession(false)}
+        />
+      );
+    }
     return (
-      <div className="flex items-center justify-center min-h-50 text-red-500">
-        Error: {error.message}
-      </div>
+      <WorkoutDetail
+        workout={toolOutput.workout}
+        onStart={() => setShowSession(true)}
+      />
     );
   }
 
+  if (toolOutput && "workouts" in toolOutput) {
+    return <WorkoutList workouts={toolOutput.workouts} />;
+  }
+
   return (
-    <div className="items-center justify-center flex min-h-50">
+    <div className="flex items-center justify-center min-h-50">
       <LoadingIndicator size={32} />
     </div>
   );
