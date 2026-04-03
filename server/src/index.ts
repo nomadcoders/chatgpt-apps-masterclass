@@ -131,7 +131,7 @@ export default {
 
 				const formattedWorkouts = result.map(
 					(workout) =>
-						`id${workout.id}\ntitle:${workout.title}\ndescription:${workout.description}\ndurationMinutes:${workout.durationMinutes}\nexerciseCount:${workout.exerciseCount}\n\n=====\n\n`,
+						`id ${workout.id}\ntitle:${workout.title}\ndescription:${workout.description}\ndurationMinutes:${workout.durationMinutes}\nexerciseCount:${workout.exerciseCount}\n\n=====\n\n`,
 				);
 
 				return {
@@ -256,7 +256,7 @@ export default {
 
 				return {
 					content: [{ type: 'text', text: `Workout completed! The user burnt ${calories}` }],
-					structuredContent: { calories },
+					structuredContent: { calories: parseInt(calories, 10) },
 				};
 			},
 		);

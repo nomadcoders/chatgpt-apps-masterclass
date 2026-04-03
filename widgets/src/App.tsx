@@ -32,6 +32,7 @@ function App() {
         <WorkoutSession
           workout={toolOutput.workout}
           onClose={() => setShowSession(false)}
+          app={app}
         />
       );
     }
