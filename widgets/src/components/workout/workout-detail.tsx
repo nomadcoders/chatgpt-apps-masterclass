@@ -2,9 +2,27 @@ import { Button } from "@openai/apps-sdk-ui/components/Button";
 import { Badge } from "@openai/apps-sdk-ui/components/Badge";
 import { Play, ExternalLink } from "@openai/apps-sdk-ui/components/Icon";
 import type { Workout } from "../../types";
+import { App } from "@modelcontextprotocol/ext-apps";
 
-export function WorkoutDetail({ workout, onStart }: { workout: Workout; onStart: () => void }) {
-  // TODO: YT search
+export function WorkoutDetail({
+  workout,
+  onStart,
+  app,
+}: {
+  workout: Workout;
+  onStart: () => void;
+  app: App | null;
+}) {
+  const openLink = async (keyword: string) => {
+    if (!app) return;
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(keyword)}`;
+    const result = await app.openLink({
+      url,
+    });
+    if (result.isError) {
+      alert("cant open link");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 bg-surface p-4">
@@ -29,7 +47,13 @@ export function WorkoutDetail({ workout, onStart }: { workout: Workout; onStart:
       </div>
 
       {/* Start button */}
-      <Button size="md" color="primary" variant="solid" className="w-full" onClick={onStart}>
+      <Button
+        size="md"
+        color="primary"
+        variant="solid"
+        className="w-full"
+        onClick={onStart}
+      >
         <Play className="w-4 h-4" />
         <span className="ml-2">Start Workout</span>
       </Button>
@@ -64,7 +88,10 @@ export function WorkoutDetail({ workout, onStart }: { workout: Workout; onStart:
                   {exercise.instructions}
                 </p>
                 {exercise.searchKeyword && (
-                  <button className="flex items-center gap-1 text-sm text-blue-500 mt-2 hover:underline">
+                  <button
+                    className="flex items-center gap-1 text-sm text-blue-500 mt-2 hover:underline"
+                    onClick={() => openLink(exercise.searchKeyword)}
+                  >
                     <ExternalLink className="w-3 h-3" />
                     Watch Form
                   </button>
