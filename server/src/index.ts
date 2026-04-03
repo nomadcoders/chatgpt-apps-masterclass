@@ -33,6 +33,7 @@ export default {
 						text: await html.text(),
 						mimeType: RESOURCE_MIME_TYPE,
 						_meta: {
+							'openai/widgetPrefersBorder': true,
 							ui: {
 								csp: {
 									connectDomains: ['https://*.workers.dev'],
