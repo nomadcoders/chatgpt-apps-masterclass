@@ -1,3 +1,4 @@
+import OAuthProvider from '@cloudflare/workers-oauth-provider';
 import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpHandler } from 'agents/mcp';
@@ -5,7 +6,7 @@ import z from 'zod';
 
 const WIDGET_URI = 'ui://ecommerce-widget';
 
-export default {
+const privateHandler = {
 	async fetch(request, env, ctx) {
 		const server = new McpServer({
 			name: 'Ecommerce App',
@@ -90,7 +91,7 @@ export default {
 			{
 				title: 'Get Product Details',
 				description:
-					'Display a single product\'s full details in the widget. Always call this when the user asks about a specific product. Use search-products first to find the product ID.',
+					"Display a single product's full details in the widget. Always call this when the user asks about a specific product. Use search-products first to find the product ID.",
 				inputSchema: {
 					productId: z.string().describe('Product ID to display'),
 				},
@@ -217,3 +218,18 @@ export default {
 		return handler(request, env, ctx);
 	},
 } satisfies ExportedHandler<Env>;
+
+const publicHandler = {
+	async fetch(request, env, ctx) {
+		return new Response('hello world');
+	},
+} satisfies ExportedHandler<Env>;
+
+export default new OAuthProvider({
+	defaultHandler: publicHandler,
+	apiHandler: privateHandler,
+	apiRoute: ['/mcp'],
+	authorizeEndpoint: '/authorize',
+	clientRegistrationEndpoint: '/register',
+	tokenEndpoint: '/token',
+});
