@@ -3,11 +3,12 @@ import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@model
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpHandler } from 'agents/mcp';
 import z from 'zod';
-
-const WIDGET_URI = 'ui://ecommerce-widget';
+import handleAuthorizeGet from './lib/authorize';
 
 const privateHandler = {
 	async fetch(request, env, ctx) {
+		const WIDGET_URI = 'ui://ecommerce-widget';
+
 		const server = new McpServer({
 			name: 'Ecommerce App',
 			version: '1.0',
@@ -221,7 +222,12 @@ const privateHandler = {
 
 const publicHandler = {
 	async fetch(request, env, ctx) {
-		return new Response('hello world');
+		const url = new URL(request.url);
+
+		if (url.pathname === '/authorize') {
+			return handleAuthorizeGet(request, env);
+		}
+		return new Response(null, { status: 404 });
 	},
 } satisfies ExportedHandler<Env>;
 
