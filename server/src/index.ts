@@ -46,6 +46,21 @@ const privateHandler = {
 			};
 		});
 
+		server.registerTool(
+			'whoami',
+			{
+				title: 'whoami',
+				description: 'tell the user who they are logged in as.',
+				inputSchema: {},
+				annotations: { readOnlyHint: true },
+			},
+			async () => {
+				return {
+					content: [{ type: 'text', text: `You are logged in as ${JSON.stringify(props)}` }],
+				};
+			},
+		);
+
 		// Tool: Search Products (model only, no UI — data tool for looking up product IDs)
 		server.registerTool(
 			'search-products',
@@ -62,21 +77,6 @@ const privateHandler = {
 			async ({ query, category }) => {
 				return {
 					content: [{ type: 'text', text: 'Not implemented' }],
-				};
-			},
-		);
-
-		server.registerTool(
-			'whoami',
-			{
-				title: 'whoami',
-				description: 'tell the user who they are logged in as.',
-				inputSchema: {},
-				annotations: { readOnlyHint: true },
-			},
-			async () => {
-				return {
-					content: [{ type: 'text', text: `You are logged in as ${JSON.stringify(props)}` }],
 				};
 			},
 		);
