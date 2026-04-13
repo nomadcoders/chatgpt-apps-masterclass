@@ -5,6 +5,7 @@ import { createMcpHandler } from 'agents/mcp';
 import z from 'zod';
 import { handleAuthorizeGet, handleAuthorizePost } from './lib/authorize';
 import { searchProducts, getProductById, getReviewsByProductId, modifyCart, getCartProducts, clearCart } from './queries';
+import { seedProducts } from './seed';
 
 type AuthProps = {
 	email: string;
@@ -259,6 +260,11 @@ const privateHandler = {
 const publicHandler = {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
+
+		if (url.pathname === '/seed') {
+			await seedProducts(env.DB);
+			return new Response('Seeded products successfully', { status: 200 });
+		}
 
 		if (url.pathname === '/authorize') {
 			if (request.method === 'GET') {
