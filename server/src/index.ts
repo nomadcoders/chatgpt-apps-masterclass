@@ -4,6 +4,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpHandler } from 'agents/mcp';
 import z from 'zod';
 import { handleAuthorizeGet, handleAuthorizePost } from './lib/authorize';
+import { and, eq, like, or } from 'drizzle-orm';
+import { products, reviews } from './schema';
+import { drizzle } from 'drizzle-orm/d1';
 
 type AuthProps = {
 	email: string;
@@ -69,14 +72,36 @@ const privateHandler = {
 				description:
 					'Search products by name or category. Returns product data without showing a widget. Use this to look up product IDs before calling add-to-cart or get-product.',
 				inputSchema: {
-					query: z.string().optional().describe('Search by product name or description'),
+					query: z.string().toLowerCase().optional().describe('Search by product name or description'),
 					category: z.string().optional().describe('Filter by category: pizza, protein, produce'),
 				},
 				annotations: { readOnlyHint: true },
 			},
 			async ({ query, category }) => {
+				const db = drizzle(env.DB);
+				const conditions = [];
+
+				if (query) {
+					const q = `%${query}%`;
+					conditions.push(or(like(products.name, q), like(products.description, q)));
+				}
+
+				if (category) {
+					conditions.push(eq(products.category, category));
+				}
+
+				const data = await db
+					.select({
+						id: products.id,
+						name: products.name,
+						price: products.price,
+						category: products.category,
+					})
+					.from(products)
+					.where(conditions.length > 0 ? and(...conditions) : undefined);
+
 				return {
-					content: [{ type: 'text', text: 'Not implemented' }],
+					content: [{ type: 'text', text: JSON.stringify(data) }],
 				};
 			},
 		);
@@ -99,8 +124,31 @@ const privateHandler = {
 				},
 			},
 			async ({ query, category }) => {
+				const db = drizzle(env.DB);
+				const conditions = [];
+
+				if (query) {
+					const q = `%${query}%`;
+					conditions.push(or(like(products.name, q), like(products.description, q)));
+				}
+
+				if (category) {
+					conditions.push(eq(products.category, category));
+				}
+
+				const data = await db
+					.select({
+						id: products.id,
+						name: products.name,
+						price: products.price,
+						category: products.category,
+					})
+					.from(products)
+					.where(conditions.length > 0 ? and(...conditions) : undefined);
+
 				return {
-					content: [{ type: 'text', text: 'Not implemented' }],
+					content: [{ type: 'text', text: `Found ${data.length} products. ${JSON.stringify(data)}` }],
+					structuredContent: { products: data },
 				};
 			},
 		);
@@ -122,8 +170,20 @@ const privateHandler = {
 				},
 			},
 			async ({ productId }) => {
+				const db = drizzle(env.DB);
+
+				const product = await db.select().from(products).where(eq(products.id, productId)).get();
+				if (!product) {
+					return {
+						content: [{ type: 'text', text: 'Product not found.' }],
+						isError: true,
+					};
+				}
+				const productReviews = await db.select().from(reviews).where(eq(reviews.productId, productId));
+
 				return {
-					content: [{ type: 'text', text: 'Not implemented' }],
+					content: [{ type: 'text', text: `Product Details: ${JSON.stringify(product)} showing ${productReviews.length}` }],
+					structuredContent: { product, reviews: productReviews },
 				};
 			},
 		);
