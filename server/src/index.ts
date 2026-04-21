@@ -35,7 +35,7 @@ const server = new McpServer(
     },
     async ({ title }) => {
       return {
-        structuredContent: { title, todos, stats: getStats() },
+        structuredContent: { title, todos, stats: getStats(), hello: "world" },
         content: [
           {
             type: "text" as const,
