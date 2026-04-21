@@ -245,11 +245,20 @@ const privateHandler = {
 				},
 			},
 			async ({ productId, rating, text, imageUrl }) => {
+				let imageKey: string | undefined;
 				if (imageUrl) {
-					// ....
+					const { ok, body, headers } = await fetch(imageUrl);
+					if (ok) {
+						const result = await env.BUCKET.put(`ecommerce/${crypto.randomUUID()}`, body, {
+							httpMetadata: {
+								contentType: headers.get('content-type') || 'image/jpeg',
+							},
+						});
+						imageKey = result.key;
+					}
 				}
 
-				await upsertReview(env.DB, props.email, productId, rating, text, '');
+				await upsertReview(env.DB, props.email, productId, rating, text, imageKey);
 
 				const freshReviews = await getReviewsByProductId(env.DB, productId);
 

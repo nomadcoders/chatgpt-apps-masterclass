@@ -33,4 +33,11 @@
 			"remote": true
 		}
 	],
+	"r2_buckets": [
+		{
+			"bucket_name": "ecommerce-assets",
+			"binding": "BUCKET",
+			"remote": true
+		}
+	],
 }

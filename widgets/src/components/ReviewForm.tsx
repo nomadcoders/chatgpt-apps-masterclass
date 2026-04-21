@@ -28,6 +28,7 @@ export function ReviewForm({ app, productId, onSubmitted }: Props) {
       const { downloadUrl } = await window.openai.getFileDownloadUrl({
         fileId,
       });
+      console.log(downloadUrl);
       setImageUrl(downloadUrl);
     } finally {
       setIsUploading(false);
@@ -38,10 +39,18 @@ export function ReviewForm({ app, productId, onSubmitted }: Props) {
     if (!app || rating === 0) return;
     setIsPending(true);
     try {
-      // TODO: Submit review
-      void productId;
-      void onSubmitted;
-      void imageUrl;
+      const result = await app.callServerTool({
+        name: "submit-review",
+        arguments: {
+          productId,
+          rating,
+          text,
+          imageUrl,
+        },
+      });
+      if (result.structuredContent) {
+        onSubmitted(result.structuredContent.reviews as Review[]);
+      }
     } finally {
       setIsPending(false);
     }
