@@ -4,8 +4,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpHandler } from 'agents/mcp';
 import z from 'zod';
 import { handleAuthorizeGet, handleAuthorizePost } from './lib/authorize';
-import { searchProducts, getProductById, getReviewsByProductId, modifyCart, getCartProducts, clearCart } from './queries';
+import { searchProducts, getProductById, getReviewsByProductId, modifyCart, getCartProducts, clearCart, upsertReview } from './queries';
 import { seedProducts } from './seed';
+import { reviews } from './schema';
 
 type AuthProps = {
 	email: string;
@@ -244,8 +245,18 @@ const privateHandler = {
 				},
 			},
 			async ({ productId, rating, text, imageUrl }) => {
+				if (imageUrl) {
+				}
+
+				await upsertReview(env.DB, props.email, productId, rating, text, '');
+
+				const freshReviews = await getReviewsByProductId(env.DB, productId);
+
 				return {
-					content: [{ type: 'text', text: 'Not implemented' }],
+					content: [{ type: 'text', text: `Review submitted. Total reviews ${freshReviews.length}` }],
+					structuredContent: {
+						reviews: freshReviews,
+					},
 				};
 			},
 		);
