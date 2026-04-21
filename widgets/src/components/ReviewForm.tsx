@@ -10,6 +10,7 @@ type Props = {
 };
 
 export function ReviewForm({ app, productId, onSubmitted }: Props) {
+  const canUpload = app?.getHostContext()?.userAgent === "chatgpt";
   const [rating, setRating] = useState(0);
   const [text, setText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -21,8 +22,13 @@ export function ReviewForm({ app, productId, onSubmitted }: Props) {
     if (!file) return;
     setIsUploading(true);
     try {
-      // TODO: Upload file
-      void file;
+      if (!window.openai) return;
+      const { fileId } = await window.openai.uploadFile(file);
+      console.log(fileId);
+      const { downloadUrl } = await window.openai.getFileDownloadUrl({
+        fileId,
+      });
+      setImageUrl(downloadUrl);
     } finally {
       setIsUploading(false);
     }
@@ -69,7 +75,7 @@ export function ReviewForm({ app, productId, onSubmitted }: Props) {
         </div>
       )}
       <div className="flex gap-2">
-        {!imageUrl && (
+        {!imageUrl && canUpload && (
           <label className="px-3 py-2 rounded-xl border border-white/10 bg-neutral-900 text-white/60 text-xs font-medium cursor-pointer hover:bg-neutral-800 transition-colors">
             <input
               type="file"

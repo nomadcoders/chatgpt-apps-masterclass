@@ -246,6 +246,7 @@ const privateHandler = {
 			},
 			async ({ productId, rating, text, imageUrl }) => {
 				if (imageUrl) {
+					// ....
 				}
 
 				await upsertReview(env.DB, props.email, productId, rating, text, '');
