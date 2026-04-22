@@ -3,6 +3,7 @@ import {
   mountWidget,
   useDisplayMode,
   useLayout,
+  useRequestModal,
   useUser,
   useWidgetState,
 } from "skybridge/web";
@@ -19,10 +20,16 @@ function ToDoList() {
     newTodoText: "",
   });
 
-  const { theme } = useLayout();
-  const { userAgent } = useUser();
+  const { theme, safeArea } = useLayout();
+  const { userAgent, locale } = useUser();
 
   const [displayMode, setDisplayMode] = useDisplayMode();
+
+  const isMobile = userAgent.device.type === "mobile";
+
+  const canHover = userAgent.capabilities.hover;
+
+  const modal = useRequestModal();
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,10 +77,6 @@ function ToDoList() {
     );
   };
 
-  const isMobile = userAgent.device.type === "mobile";
-
-  const canHover = userAgent.capabilities.hover;
-
   if (isPending) {
     return (
       <div className="flex items-center justify-center p-8 text-gray-500">
@@ -82,8 +85,36 @@ function ToDoList() {
     );
   }
 
+  if (modal.isOpen) {
+    const todo = widgetState.todos.find((t) => t.id === modal.params?.id);
+    if (todo) {
+      return (
+        <div className={theme === "dark" ? "dark" : ""}>
+          <div className="p-6 dark:bg-gray-900 dark:text-white">
+            <h2 className="text-xl font-bold mb-4">{todo.text}</h2>
+            <p>{todo.completed ? "Completed" : "Pending"}</p>
+            <p>
+              {new Intl.DateTimeFormat(locale, {
+                dateStyle: "long",
+                timeStyle: "short",
+              }).format(new Date(todo.createdAt))}
+            </p>
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
-    <div className={theme === "dark" ? "dark" : ""}>
+    <div
+      className={theme === "dark" ? "dark" : ""}
+      style={{
+        paddingTop: safeArea.insets.top,
+        paddingLeft: safeArea.insets.left,
+        paddingRight: safeArea.insets.right,
+        paddingBottom: safeArea.insets.bottom,
+      }}
+    >
       <div className="p-4 dark:bg-gray-900 dark:text-white">
         <div className="flex items-center justify-between mb-4">
           <h1
@@ -133,27 +164,6 @@ function ToDoList() {
                   </svg>
                 </button>
               </>
-            )}
-            {displayMode !== "inline" && (
-              <button
-                onClick={() => setDisplayMode("inline")}
-                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                title="Minimize"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-                  />
-                </svg>
-              </button>
             )}
           </div>
         </div>
@@ -217,6 +227,31 @@ function ToDoList() {
               >
                 {todo.text}
               </span>
+              <button
+                onClick={() =>
+                  modal.open({
+                    title: "Detail",
+                    params: {
+                      id: todo.id,
+                    },
+                  })
+                }
+                className={`${canHover ? "opacity-0 group-hover:opacity-100" : ""} ${isMobile ? "p-3" : "p-1"} text-gray-400 hover:text-blue-500 transition-opacity`}
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                  />
+                </svg>
+              </button>
               <button
                 onClick={() => onDeleteClick(todo.id)}
                 className={` ${canHover ? "opacity-0 group-hover:opacity-100" : ""}
