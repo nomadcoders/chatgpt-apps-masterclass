@@ -1,6 +1,5 @@
 import "@/index.css";
-import { useState } from "react";
-import { mountWidget } from "skybridge/web";
+import { mountWidget, useWidgetState } from "skybridge/web";
 import { useToolInfo, useCallTool } from "@/helpers.js";
 
 function ToDoList() {
@@ -9,19 +8,25 @@ function ToDoList() {
   const deleteTodoTool = useCallTool("delete-todo");
   const toggleTodoTool = useCallTool("toggle-todo");
 
-  const [todos, setTodos] = useState(output?.todos ?? []);
-  const [newTodoText, setNewTodoText] = useState("");
+  const [widgetState, setWidgetState] = useWidgetState({
+    todos: output?.todos ?? [],
+    newTodoText: "",
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const text = newTodoText.trim();
+    const text = widgetState.newTodoText.trim();
     if (!text) return;
     addTodoTool.callTool(
       { text },
       {
         onSuccess: (data) => {
-          setTodos(data.structuredContent.todos);
-          setNewTodoText("");
+          // setTodos(data.structuredContent.todos);
+          // setNewTodoText("");
+          setWidgetState({
+            todos: data.structuredContent.todos,
+            newTodoText: "",
+          });
         },
       },
     );
@@ -32,7 +37,10 @@ function ToDoList() {
       { id },
       {
         onSuccess: (data) => {
-          setTodos(data.structuredContent.todos);
+          setWidgetState((prev) => ({
+            todos: data.structuredContent.todos,
+            newTodoText: prev.newTodoText,
+          }));
         },
       },
     );
@@ -42,7 +50,10 @@ function ToDoList() {
       { id },
       {
         onSuccess: (data) => {
-          setTodos(data.structuredContent.todos);
+          setWidgetState((prev) => ({
+            todos: data.structuredContent.todos,
+            newTodoText: prev.newTodoText,
+          }));
         },
       },
     );
@@ -64,8 +75,13 @@ function ToDoList() {
       <form className="flex gap-2 mb-4" onSubmit={handleSubmit}>
         <input
           type="text"
-          value={newTodoText}
-          onChange={(e) => setNewTodoText(e.target.value)}
+          value={widgetState.newTodoText}
+          onChange={(e) =>
+            setWidgetState((prev) => ({
+              todos: prev.todos,
+              newTodoText: e.target.value,
+            }))
+          }
           placeholder="Add a new todo..."
           className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -75,12 +91,12 @@ function ToDoList() {
       </form>
 
       <ul className="space-y-1">
-        {todos.length === 0 && (
+        {widgetState.todos.length === 0 && (
           <li className="text-center py-8 text-gray-400 text-sm">
             No todos yet.
           </li>
         )}
-        {todos.map((todo) => (
+        {widgetState.todos.map((todo) => (
           <li
             key={todo.id}
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800
