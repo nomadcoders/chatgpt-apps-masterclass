@@ -1,5 +1,11 @@
 import "@/index.css";
-import { mountWidget, useLayout, useUser, useWidgetState } from "skybridge/web";
+import {
+  mountWidget,
+  useDisplayMode,
+  useLayout,
+  useUser,
+  useWidgetState,
+} from "skybridge/web";
 import { useToolInfo, useCallTool } from "@/helpers.js";
 
 function ToDoList() {
@@ -15,6 +21,8 @@ function ToDoList() {
 
   const { theme } = useLayout();
   const { userAgent } = useUser();
+
+  const [displayMode, setDisplayMode] = useDisplayMode();
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -77,8 +85,78 @@ function ToDoList() {
   return (
     <div className={theme === "dark" ? "dark" : ""}>
       <div className="p-4 dark:bg-gray-900 dark:text-white">
-        <h1 className="text-lg font-bold mb-4">{input?.title}</h1>
-
+        <div className="flex items-center justify-between mb-4">
+          <h1
+            className={`${displayMode === "fullscreen" ? "text-2xl" : "text-lg"} font-bold`}
+          >
+            {input?.title}
+          </h1>
+          <div className="flex gap-1">
+            {displayMode === "inline" && (
+              <>
+                <button
+                  onClick={() => setDisplayMode("fullscreen")}
+                  className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  title="Expand"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setDisplayMode("pip")}
+                  className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  title="Pin"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                    />
+                  </svg>
+                </button>
+              </>
+            )}
+            {displayMode !== "inline" && (
+              <button
+                onClick={() => setDisplayMode("inline")}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                title="Minimize"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
         {/* Add todo form */}
         <form className="flex gap-2 mb-4" onSubmit={handleSubmit}>
           <input
