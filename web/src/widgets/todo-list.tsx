@@ -4,6 +4,7 @@ import {
   useDisplayMode,
   useLayout,
   useRequestModal,
+  useSendFollowUpMessage,
   useUser,
   useWidgetState,
 } from "skybridge/web";
@@ -30,6 +31,8 @@ function ToDoList() {
   const canHover = userAgent.capabilities.hover;
 
   const modal = useRequestModal();
+
+  const sendMessage = useSendFollowUpMessage();
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -275,6 +278,19 @@ function ToDoList() {
             </li>
           ))}
         </ul>
+
+        <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end">
+          <button
+            onClick={() =>
+              sendMessage(
+                `Summarize my todos: ${JSON.stringify(widgetState.todos)}`,
+              )
+            }
+            className="text-blue-500 cursor-pointer hover:text-blue-600 font-medium text-xs"
+          >
+            Summarize
+          </button>
+        </div>
       </div>
     </div>
   );

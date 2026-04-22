@@ -9,7 +9,14 @@ interface Todo {
 }
 
 let nextId = 1;
-const todos: Todo[] = [];
+const todos: Todo[] = [
+  {
+    id: "1",
+    text: "eat pizza",
+    completed: false,
+    createdAt: Date.now().toLocaleString(),
+  },
+];
 
 function getStats() {
   const total = todos.length;
