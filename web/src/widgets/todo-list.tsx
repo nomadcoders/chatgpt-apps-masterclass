@@ -5,7 +5,9 @@ import { useToolInfo, useCallTool } from "@/helpers.js";
 
 function ToDoList() {
   const { output, isPending, input } = useToolInfo<"todo-list">();
-  const addToDo = useCallTool("add-todo");
+  const addTodoTool = useCallTool("add-todo");
+  const deleteTodoTool = useCallTool("delete-todo");
+  const toggleTodoTool = useCallTool("toggle-todo");
 
   const [todos, setTodos] = useState(output?.todos ?? []);
   const [newTodoText, setNewTodoText] = useState("");
@@ -14,12 +16,33 @@ function ToDoList() {
     e.preventDefault();
     const text = newTodoText.trim();
     if (!text) return;
-    addToDo.callTool(
+    addTodoTool.callTool(
       { text },
       {
         onSuccess: (data) => {
           setTodos(data.structuredContent.todos);
           setNewTodoText("");
+        },
+      },
+    );
+  };
+
+  const onToggleClick = (id: string) => {
+    toggleTodoTool.callTool(
+      { id },
+      {
+        onSuccess: (data) => {
+          setTodos(data.structuredContent.todos);
+        },
+      },
+    );
+  };
+  const onDeleteClick = (id: string) => {
+    deleteTodoTool.callTool(
+      { id },
+      {
+        onSuccess: (data) => {
+          setTodos(data.structuredContent.todos);
         },
       },
     );
@@ -34,7 +57,7 @@ function ToDoList() {
   }
 
   return (
-    <div className="p-4 ">
+    <div className="p-4 bg-white">
       <h1 className="text-lg font-bold mb-4">{input?.title}</h1>
 
       {/* Add todo form */}
@@ -47,7 +70,7 @@ function ToDoList() {
           className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
-          {addToDo.isPending ? "Adding to do..." : "Add"}
+          {addTodoTool.isPending ? "Adding to do..." : "Add"}
         </button>
       </form>
 
@@ -60,9 +83,11 @@ function ToDoList() {
         {todos.map((todo) => (
           <li
             key={todo.id}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 group"
+            className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800
+            group"
           >
             <button
+              onClick={() => onToggleClick(todo.id)}
               className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
                 todo.completed
                   ? "bg-blue-500 border-blue-500 text-white"
@@ -90,6 +115,25 @@ function ToDoList() {
             >
               {todo.text}
             </span>
+            <button
+              onClick={() => onDeleteClick(todo.id)}
+              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500
+            transition-opacity"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           </li>
         ))}
       </ul>
